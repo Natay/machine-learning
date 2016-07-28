@@ -13,7 +13,6 @@ import pickle, gzip
 
 from sklearn.cross_validation import train_test_split 
 
-
 def blomap_encoder(r_data):
     
     decoder = open(r'D:/data/decoder.txt', 'r').readlines()
@@ -62,35 +61,29 @@ def options(show_full=False):
     elif show_full:
         print(full_options)
 
-# Data generator class from list of options.                               
+
 class Generate:
 
     def __init__(self, name):
-        
         self.name = name
         
-    # add data_path param
     def fetch_data(self):
 
         if self.name == 'hiv-1':
-            
             data_dir = r'D:/data/humanSNP'
             ds = {}
-            
             for data_path in glob.glob(os.path.join(data_dir, '*.txt')):
                 rawdata = [x.split(',') for x in open(r'' + data_path, 'r').readlines()]
                 ds[data_path.split('/')[-1]] = rawdata
             return ds
 
         if self.name == 'test':
-            
             full = gzip.open(r'D:\mnist.pkl.gz', 'rb')
             tr_set, va_set, te_set = pickle.load(full, encoding='latin1')
             full.close()
             return tr_set, va_set, te_set
             
         if self.name == 'chess':
-            
             data_path = r'D:/data/chess(KRK)/chess(KRK).txt'
             rawdata = [x.split(',') for x in open(data_path,'r').readlines()]
             return rawdata
@@ -101,15 +94,13 @@ class Generate:
                 
         else:
             options()
-            raise ValueError('%s is not loadable. See options above'%self.name)
+            raise ValueError('%s is not loadable. See options.'%self.name)
 
 
-# Data processing class          
 class Process:
     
     def __init__(self, mode):
         self.mode = mode
-
 
     def train_test_generator(self, mdata, select_tr=None, select_te=None,
                              return_count=None, test_size=None, random_state=50):
@@ -156,8 +147,7 @@ class Process:
             else:
                 options()
                 raise ValueError('% is not an integer or None'%return_count)
-                
-
+        
         if self.mode =='chess':
             
             all_labels= [x[-1].strip() for x in mdata]
@@ -195,11 +185,8 @@ class Process:
             if n == label_out:
                 full_labels[i] = label_in
                 
- 
         return full_labels
 
-
-# wrapping functon
 def load(mode, select_tr=None, select_te=None, return_count=None, 
          transformlabels=False, inoutlabels=None, test_size=None, rnd_st=50):
 
@@ -219,7 +206,6 @@ def load(mode, select_tr=None, select_te=None, return_count=None,
                                                select_tr=select_tr, 
                                                return_count=return_count,
                                                select_te=select_te)
-    
         if transformlabels:
             for se in uncompdata:
                 for p,sepd in enumerate(se):
@@ -235,8 +221,7 @@ def load(mode, select_tr=None, select_te=None, return_count=None,
             return uncompdata
             
     if mode == 'chess':
-        rawdata = Generate(mode).fetch_data()
-        xtr, ytr, xte, yte = Process(mode).train_test_generator(rawdata,
+        xtr, ytr, xte, yte = Process(mode).train_test_generator(fulldata,
                                                                 test_size=test_size,
                                                                 random_state=rnd_st)
         return xtr, ytr, xte, yte
@@ -244,7 +229,6 @@ def load(mode, select_tr=None, select_te=None, return_count=None,
     else:
         options()
         raise ValueError('%s is not a loadable dataset. See options()'%mode)
-       
 
 
 if __name__ == '__main__':
