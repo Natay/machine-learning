@@ -46,8 +46,8 @@ def param_tuner(clf, score, cv, xtr, ytr):
                       'n_iter': [500]}],'SGDClassifier'
                       
     bagging_grid = [{'n_estimators': [x for x in range(0, 230, 70)],
-                         'max_samples': [np.arange(0, 1, 0.2)],
-                         'max_features': [np.arange(0, 1, 0.1)],
+                         'max_samples': [np.arange(0.1, 1, 0.2)],
+                         'max_features': [np.arange(0.1, 1, 0.1)],
                          'bootstrap_features': [True, False],
                          'oob_score': [True,False]}],'BaggingClassifier'
     # for future use                    
