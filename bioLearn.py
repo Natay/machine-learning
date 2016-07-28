@@ -10,6 +10,7 @@ import inspect
 import types
 import time
 
+import numpy as np
 from sklearn.ensemble import BaggingClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.kernel_approximation import Nystroem
@@ -31,30 +32,31 @@ def param_tuner(clf, score, cv, xtr, ytr):
         
         return [pipeline_grid]
     
-    nys_grid = [{'n_components': [2500],
-                     'gamma': [1e-1],
-                     'degree': [1, 2],
-                     'coef0': [1, 2]}],'Nystroem'
+    nys_grid = [{'n_components': [x for x in range(900, 2500, 300)],
+                     'gamma': [1e-1, 1e-2],
+                     'degree': [1, 2, 3],
+                     'coef0': [1, 2, 3]}],'Nystroem'
                      
-    sgd_grid = [{'loss': [ 'hinge', 'squared_hinge'],
+    sgd_grid = [{'loss': [ 'hinge', 'squared_hinge', 'log', 'modified_huber',
+                         'perceptron'],
                       'warm_start': [True, False],
-                      'penalty': ['l2'],
-                      'alpha': [1e-3],
-                      'class_weight': ['balanced'],
-                      'n_iter': [100]}],'SGDClassifier'
+                      'penalty': ['l2', 'l1', 'elasticnet'],
+                      'alpha': [1e-1, 1e-3, 1e-4],
+                      'class_weight': ['balanced', None],
+                      'n_iter': [500]}],'SGDClassifier'
                       
-    bagging_grid = [{'n_estimators': [150, 180],
-                         'max_samples': [0.61, 0.67],
-                         'max_features': [0.72, 0.83],
-                         'bootstrap_features': [True],
-                         'oob_score': [False]}],'BaggingClassifier'
+    bagging_grid = [{'n_estimators': [x for x in range(0, 230, 70)],
+                         'max_samples': [np.arange(0, 1, 0.2)],
+                         'max_features': [np.arange(0, 1, 0.1)],
+                         'bootstrap_features': [True, False],
+                         'oob_score': [True,False]}],'BaggingClassifier'
     # for future use                    
-    adaboost_grid = [{'n_estimators':[50, 100, 150],
-                      'learning_rate': [1]
+    adaboost_grid = [{'n_estimators':[x for x in range(0,200,60)],
+                      'learning_rate': [np.linspace(0, 3, 0.43,endpoint=False)]
                       }],'AdaBoostClassifier'
     # for future use                 
-    linsvc_grid = [{'C': [1, 2, 5, 10],
-                    'max_iter': [1000, 5000, 6000]}],'LinearSVC'
+    linsvc_grid = [{'C': [x for x in range(0, 20, 5)],
+                    'max_iter': [x for x in range(1000,10000,1000)]}],'LinearSVC'
     
     indiv_grids = [nys_grid, sgd_grid, bagging_grid, adaboost_grid, linsvc_grid]
     all_grid_types = [x[1] for x in indiv_grids]+['Pipeline']
@@ -119,30 +121,23 @@ class SupervisedEstimators:
         
         pipe = Pipeline([('feature_map', Nystroem()),
                          ('clf', SGDClassifier())])
-                         
 
-        feature_used = type(pipe.named_steps['feature_map']).__name__
-        clf_used = type(pipe.named_steps['clf']).__name__
-         
         for score in scoring:
             
             print('Tuning parameters of Pipline...')
             tuned_pipe = param_tuner(pipe, score=score,
                                    cv=cv, xtr=self.xtr, ytr=self.ytr)
-    
-            print('\n'+'Transforming X with {} for {}...'.format(feature_used, 
-                                                              clf_used))
+                                   
+            print('\n'+'Transforming X with Nystroem for SGDClassifier...')
             X_feat = tuned_pipe.named_steps['feature_map'].fit_transform(self.xtr)
             sgd_clf = tuned_pipe.named_steps['clf'].fit(X_feat, self.ytr)
- 
+            
             print('Fitting bagging classifer with SGDclf then predicting...') 
             bgclf = BaggingClassifier(sgd_clf)
             bagging_params = param_tuner(bgclf, score=score,
-                                         cv=cv, xtr=self.xtr, ytr=self.ytr)  
-            
+                                         cv=cv, xtr=self.xtr, ytr=self.ytr) 
             bgclf.set_params(**bagging_params)            
             bgclf = bgclf.fit(self.xtr,self.ytr)
-            print(bgclf.get_params())
             s= time.time()
             y_true, y_pred = self.yte, bgclf.predict(self.xte)
             print('\n'+'{0:.4f}'.format(time.time()-s)+'--prediction time')
@@ -154,13 +149,11 @@ class SupervisedEstimators:
                 print('---',reports)
                 print(clf_evaluation[reports])
 
-
     def regression(self):
         pass
     def neural_net(self):
         # use rbm or theano net made in other module
         pass
-
 
 class UnsupervisedEstimators:
     
