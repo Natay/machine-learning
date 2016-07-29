@@ -22,15 +22,12 @@ from sklearn.grid_search import GridSearchCV
 def param_tuner(clf, score, cv, xtr, ytr):
 
     def make_pipeline_grid(*args, **kwargs):
-        
         names = {type(x[1]).__name__:x[0] for x in args}
         pipeline_grid = {}
-        
         for cl in kwargs:
             if cl in names.keys():
                 for param in kwargs[cl][0]:
                     pipeline_grid[names[cl]+'__'+param] = kwargs[cl][0][param]
-        
         return [pipeline_grid]
     
     nys_grid = [{'n_components': [x for x in range(900, 2500, 300)],
@@ -73,7 +70,6 @@ def param_tuner(clf, score, cv, xtr, ytr):
                     return estimer.best_params_
     
         if type(clf).__name__ is 'Pipeline':
-            
             grids ={x[1]:x[0] for x in indiv_grids}            
             estimer = GridSearchCV(clf, make_pipeline_grid(*clf.steps, **grids), 
                                    cv=cv, scoring =score, verbose=1, n_jobs=2)
@@ -108,7 +104,6 @@ def report(*args,**kwargs):
 class SupervisedEstimators:
     
     def __init__(self, xtrain, ytrain, xtest, ytest):
-        
         self.xtr = xtrain
         self.ytr = ytrain
         self.xte = xtest
