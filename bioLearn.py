@@ -11,7 +11,8 @@ import types
 import time
 
 import numpy as np
-from sklearn.ensemble import BaggingClassifier
+from sklearn.ensemble import BaggingClassifier, AdaBoostClassifier
+from sklearn.ensemble import VotingClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.kernel_approximation import Nystroem
 from sklearn.pipeline import Pipeline
@@ -120,26 +121,36 @@ class SupervisedEstimators:
     def classifier(self, scoring, cv, eval_using):
         
         pipe = Pipeline([('feature_map', Nystroem()),
-                         ('clf', SGDClassifier())])
-
+                         ('clf', SGDClassifier())])              
+        adaclf = AdaBoostClassifier(algorithm='SAMME')
+        
         for score in scoring:
             
             print('Tuning parameters of Pipline...')
             tuned_pipe = param_tuner(pipe, score=score,
                                    cv=cv, xtr=self.xtr, ytr=self.ytr)
-                                   
+    
             print('\n'+'Transforming X with Nystroem for SGDClassifier...')
             X_feat = tuned_pipe.named_steps['feature_map'].fit_transform(self.xtr)
             sgd_clf = tuned_pipe.named_steps['clf'].fit(X_feat, self.ytr)
-            
-            print('Fitting bagging classifer with SGDclf then predicting...') 
-            bgclf = BaggingClassifier(sgd_clf)
-            bagging_params = param_tuner(bgclf, score=score,
-                                         cv=cv, xtr=self.xtr, ytr=self.ytr) 
-            bgclf.set_params(**bagging_params)            
-            bgclf = bgclf.fit(self.xtr,self.ytr)
+ 
+            print('Fitting meta-classifers with SGDclf then predicting...') 
+            bagging_params = param_tuner(BaggingClassifier(sgd_clf), 
+                                         score=score, cv=cv, xtr=self.xtr, 
+                                         ytr=self.ytr)
+            bgclf = BaggingClassifier(sgd_clf).set_params(**bagging_params) 
+            adaboost_params = param_tuner(adaclf.set_params(base_estimator=sgd_clf),
+                                          score =score, cv=cv, xtr=self.xtr,
+                                          ytr=self.ytr)                          
+            adaclf = adaclf.set_params(**adaboost_params)
+
+            vote = VotingClassifier(estimators=[('bagging',bgclf),
+                                                ('adaboost',adaclf)],
+                                    voting='hard')
+            vote.fit(self.xtr, self.ytr)
+    
             s= time.time()
-            y_true, y_pred = self.yte, bgclf.predict(self.xte)
+            y_true, y_pred = self.yte, vote.predict(self.xte)
             print('\n'+'{0:.4f}'.format(time.time()-s)+'--prediction time')
             
             print('\n' + '-'*5, 'FINAL PREDICTION RESULTS','-'*5)
