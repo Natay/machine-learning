@@ -164,8 +164,6 @@ class UnsupervisedEstimators:
     def kmeans_clustering(self):
         pass
 
-
-                
 if __name__ == '__main__':
     
     # local imports
@@ -178,8 +176,9 @@ if __name__ == '__main__':
     data.options()
 
     hiv1 = data.load(mode='hiv-1', select_tr ='schilling', select_te='impens')
-    scores_to_max = ['accuracy']
-     
+    grid_score = ['accuracy']
+    used_to_eval = ['accuracy_score', 'f1_score', 'brier_score_loss', 
+                    'classification_report','pairwise']  
     
     for alldata in hiv1:                                                    
 
@@ -188,12 +187,8 @@ if __name__ == '__main__':
         
         print('\t\t'+'{} as training, {} as testing'.format(len(trainx),
                                                      len(testx))+'\n')
-        used_to_eval = ['accuracy_score', 'f1_score', 'brier_score_loss', 
-                        'classification_report','pairwise']                                         
-        
         machine = SupervisedEstimators(trainx, trainy, testx, testy)
-        machine.classifier(scores_to_max, 3, used_to_eval)
-        
+        machine.classifier(grid_score, 3, used_to_eval)
         print(('-'*50) +'\n')
         
 
