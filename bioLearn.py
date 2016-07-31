@@ -104,9 +104,8 @@ def report(*args,**kwargs):
         y_true, y_pred = kwargs['y_true'], kwargs['y_pred'] 
         full_reports= {}
         local_import = importlib.import_module('sklearn.metrics')
-        
     except:
-        raise KeyError('y_true and y_pred not set.')
+        raise KeyError('y_true and y_pred/y_score not set.')
 
     for report_type in args:
         if report_type in dir(local_import):
@@ -175,15 +174,11 @@ class SupervisedEstimators:
                                                 ('adaboostSGD', ada_sgdclf),
                                                 ('Passive', passclf)],
                                     voting='hard').fit(xtr, self.ytr)
-            
-            print(adasgd_params)
-            print(bagsgd_params)
-            print(passive_params)
-            
-            s= time.time()
+
+            start = time.time()
             y_true, y_pred = self.yte, vote.predict(xte)
             print('\n' + '-'*5, 'FINAL PREDICTION RESULTS','-'*5 +'\n', 
-                  '{0:.4f}'.format(time.time()-s)+'--prediction time(secs)')
+                  '{0:.4f}'.format(time.time()-start)+'--prediction time(secs)')
                   
             clf_evaluation = report(*eval_using, y_true=y_true, y_pred=y_pred)
             for reports in clf_evaluation:
